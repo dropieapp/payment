@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redirect;
 
 class WalletController extends Controller
 {
@@ -60,13 +61,15 @@ class WalletController extends Controller
     public function fundWallet(Request $request, $id)
     {
         //Get the customer ID from the database
-        $customerId = DB::table('users')->where('id', $id)->value('id');
+        $customerId = DB::table('users')->where('id', $id)->get('id');
+
+        $customerEmail = DB::table('users')->where('id', $id)->get('email');
 
         //Launch the paystack payment gateway
         $url = "https://api.paystack.co/transaction/initialize";
         $fields = [
-            'email' => "customer@email.com",
-            'amount' => "20000",
+            'email' => $request->input('email'),
+            'amount' => $request->input('amount'),
         ];
         $fields_string = http_build_query($fields);
         //open connection
@@ -77,7 +80,7 @@ class WalletController extends Controller
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $fields_string);
         curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            "Authorization: Bearer SECRET_KEY",
+            "Authorization: Bearer sk_test_3d67c9186567201c64426b0e281350d86489cabe",
             "Cache-Control: no-cache",
         ));
 
@@ -86,6 +89,8 @@ class WalletController extends Controller
 
         //execute post
         $result = curl_exec($ch);
-        echo $result;
+        // echo $result;
+        $returnUrl = json_decode($result)->data->authorization_url;
+        return Redirect::away($returnUrl);
     }
 }
