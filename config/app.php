@@ -177,6 +177,8 @@ return [
 
         Srmklive\PayPal\Providers\PayPalServiceProvider::class,
 
+        Unicodeveloper\Paystack\PaystackServiceProvider::class,
+
     ],
 
     /*
@@ -232,6 +234,7 @@ return [
         'Validator' => Illuminate\Support\Facades\Validator::class,
         'View' => Illuminate\Support\Facades\View::class,
         'PayPal' => Srmklive\PayPal\Facades\PayPal::class,
+        'Paystack' => Unicodeveloper\Paystack\Facades\Paystack::class,
 
     ],
 

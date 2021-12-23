@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\WalletController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -28,3 +29,9 @@ Route::post('customer/{id}/wallet/create', [WalletController::class, 'createWall
 
 //To fund the customer's wallet
 Route::post('customer/{id}/wallet/fund', [WalletController::class, 'fundWallet']);
+
+//To verify transaction
+Route::get('customer/{id}/wallet/verify', [WalletController::class, 'verifyTransaction']);
+
+//To view all customer's transactions
+Route::get('customer/{id}/wallet/transaction', [TransactionController::class, 'view']);

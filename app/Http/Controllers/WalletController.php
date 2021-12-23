@@ -5,11 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Session;
 
 class WalletController extends Controller
 {
+    public $returnRef;
+
     public function viewWallet(Request $request, $id)
     {
         //Get the customer ID from the database
@@ -65,11 +70,11 @@ class WalletController extends Controller
 
         $customerEmail = DB::table('users')->where('id', $id)->get('email');
 
-        //Launch the paystack payment gateway
         $url = "https://api.paystack.co/transaction/initialize";
         $fields = [
             'email' => $request->input('email'),
             'amount' => $request->input('amount'),
+            'callback_url' => 'http://127.0.0.1:8000/api/customer/{id}/wallet/verify'
         ];
         $fields_string = http_build_query($fields);
         //open connection
@@ -89,8 +94,52 @@ class WalletController extends Controller
 
         //execute post
         $result = curl_exec($ch);
-        // echo $result;
-        $returnUrl = json_decode($result)->data->authorization_url;
-        return Redirect::away($returnUrl);
+
+        $transaction = json_decode($result);
+
+        #Redirect to the payment page
+        // return Redirect::away($transaction->data->authorization_url);
+
+        $refUrl = urldecode($transaction->data->authorization_url);
+
+        return $result;
+    }
+
+    public function verifyTransaction(Request $request)
+    {
+
+        $curl = curl_init();
+
+        if (!empty($_GET["reference"])) {
+            # clean the reference code
+            $sanitize = filter_var_array($_GET, FILTER_SANITIZE_STRING);
+            $reference = rawurldecode($sanitize["reference"]);
+        } else {
+            return response()->json(['status' => true, 'message' => 'No reference was supplied']);
+        }
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => "https://api.paystack.co/transaction/verify/" . $reference,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "GET",
+            CURLOPT_HTTPHEADER => array(
+                "Authorization: Bearer sk_test_3d67c9186567201c64426b0e281350d86489cabe",
+                "Cache-Control: no-cache",
+            ),
+        ));
+
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+        curl_close($curl);
+
+        if ($err) {
+            echo "cURL Error #:" . $err;
+        } else {
+            echo $response;
+        }
     }
 }
