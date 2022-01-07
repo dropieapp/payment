@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\Support\Facades\Session;
+
+use function PHPUnit\Framework\returnValue;
 
 class WalletController extends Controller
 {
@@ -105,8 +105,9 @@ class WalletController extends Controller
         return $result;
     }
 
-    public function verifyTransaction(Request $request)
+    public function verifyTransaction(Request $request, $id)
     {
+        $customerId = DB::table('wallets')->where('customer_id', $id)->get('customer_id');
 
         $curl = curl_init();
 
@@ -136,10 +137,54 @@ class WalletController extends Controller
         $err = curl_error($curl);
         curl_close($curl);
 
+        # Send data to the database
+        $transaction = json_decode($response);
+
+        $storeData = [
+            'customer_id' => $id,
+            // 'transaction_id' => $transaction->data->id,
+            'transaction_id' => '874528',
+            'transaction_status' => $transaction->data->status,
+            'transaction_reference' => $transaction->data->reference,
+            'transaction_amount' => $transaction->data->amount * 0.01,
+            'transaction_date_created' => $transaction->data->created_at = date("Y-m-d H:i:s"),
+            'transaction_paid_at' => $transaction->data->paid_at = date("Y-m-d H:i:s"),
+            'transaction_currency' => $transaction->data->currency,
+            'bank_of_transfer' => $transaction->data->authorization->bank,
+            'channel_of_transfer' => $transaction->data->authorization->channel,
+            'card_type_on_transfer' => $transaction->data->authorization->card_type,
+            'customer_payment_id' => $transaction->data->customer->id,
+        ];
+
+        # Store the transaction data in the database
+        $createTransaction = Transaction::create($storeData);
+
         if ($err) {
             echo "cURL Error #:" . $err;
         } else {
-            echo $response;
+            echo $createTransaction;
         }
+    }
+
+    public function updateWallet(Request $request, $id)
+    {
+        # Get the last transaction record of the customer
+        $lastRecord = DB::table('transactions')->where([
+            ['customer_id', $id],
+            ['transaction_status', 'success'],
+        ])->get('transaction_amount')->last();
+
+        # Get the amount of the customer from the wallet table
+        $initialAmount = DB::table('wallets')->where('customer_id', $id)->get('amount');
+
+        $newAmount = $initialAmount[0]->amount + $lastRecord->transaction_amount;
+
+        $updateWallet = DB::table('wallets')->where('customer_id', $id)->update(['amount' => $newAmount]);
+
+        return response()->json([
+            'Status' => true,
+            'Message' => 'The update was successful',
+            'Data' => $updateWallet
+        ]);
     }
 }

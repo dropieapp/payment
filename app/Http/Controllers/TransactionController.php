@@ -7,15 +7,38 @@ use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
 {
-    public function view(Request $request, $id)
+    public function viewTransaction(Request $request, $id)
     {
-        $userId = DB::table('users')->where('id', $id)->get();
+        $userRecord = DB::table('transactions')->where('customer_id', $id)->get();
 
-        dd($userId);
+        return response()->json([
+            'Status' => true,
+            'Message' => 'Success',
+            'Data' => $userRecord
+        ]);
     }
 
-    public function getPaymentResponse()
+    public function completedTransaction(Request $request, $id)
     {
-        $storeResult = new WalletController();
+        $userRecord = DB::table('transactions')->where([
+            ['customer_id', $id],
+            ['transaction_status', 'success'],
+        ])->get();
+
+        return $userRecord;
+    }
+
+    public function failedTransaction(Request $request, $id)
+    {
+        $userRecord = DB::table('transactions')->where([
+            ['customer_id', $id],
+            ['transaction_status', 'failed'],
+        ])->get();
+
+        return response()->json([
+            'Status' => true,
+            'Message' => 'Success',
+            'Data' => $userRecord
+        ]);
     }
 }

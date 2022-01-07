@@ -33,5 +33,14 @@ Route::post('customer/{id}/wallet/fund', [WalletController::class, 'fundWallet']
 //To verify transaction
 Route::get('customer/{id}/wallet/verify', [WalletController::class, 'verifyTransaction']);
 
+//To update the customer's wallet
+Route::post('customer/{id}/wallet/update', [WalletController::class, 'updateWallet']);
+
 //To view all customer's transactions
-Route::get('customer/{id}/wallet/transaction', [TransactionController::class, 'view']);
+Route::get('customer/{id}/wallet/transaction/view', [TransactionController::class, 'viewTransaction']);
+
+//To view only successful transaction records
+Route::get('customer/{id}/wallet/transaction/completed', [TransactionController::class, 'completedTransaction']);
+
+//To view only failed transaction records
+Route::get('customer/{id}/wallet/transaction/failed', [TransactionController::class, 'failedTransaction']);
